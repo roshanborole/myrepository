@@ -1,0 +1,199 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+  foodOrders FoodOrder[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Match {
+  id        String   @id @default(cuid())
+  team1     String
+  team1Logo String?
+  team2     String
+  team2Logo String?
+  date      DateTime
+  format    MatchFormat
+  type      MatchType
+  status    MatchStatus @default(UPCOMING)
+  result    String?
+  liveScore String?
+  overs     String?
+  tickets   Ticket[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum MatchFormat {
+  TEST
+  ODI
+  T20I
+  T20
+  MULTI_DAY
+  ONE_DAY
+}
+
+enum MatchType {
+  ICC_MENS
+  ICC_WOMENS
+  RPL_MENS
+  RPL_WOMENS
+  DOMESTIC_MENS
+  DOMESTIC_WOMENS
+}
+
+enum MatchStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+}
+
+model Player {
+  id            String   @id @default(cuid())
+  name          String
+  photo         String?
+  age           Int?
+  dob           DateTime?
+  nationality   String?
+  team          String?
+  role          PlayerRole
+  battingStyle  String?
+  bowlingStyle  String?
+  jerseyNumber  Int?
+  playerStats   PlayerStats?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum PlayerRole {
+  BATSMAN
+  BOWLER
+  ALL_ROUNDER
+  WICKET_KEEPER
+}
+
+model PlayerStats {
+  id              String @id @default(cuid())
+  playerId        String @unique
+  player          Player @relation(fields: [playerId], references: [id])
+  matchesPlayed   Int @default(0)
+  runs            Int @default(0)
+  highestScore    Int @default(0)
+  battingAvg      Float @default(0)
+  strikeRate      Float @default(0)
+  fifties         Int @default(0)
+  hundreds        Int @default(0)
+  fours           Int @default(0)
+  sixes           Int @default(0)
+  wickets         Int @default(0)
+  bowlingAvg      Float @default(0)
+  economy         Float @default(0)
+  bestBowling     String?
+  maidenOvers     Int @default(0)
+  catches         Int @default(0)
+  runOuts         Int @default(0)
+  stumpings       Int @default(0)
+}
+
+model Ticket {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id])
+  stand     String
+  block     String?
+  seat      String
+  price     Float
+  status    TicketStatus @default(BOOKED)
+  qrCode    String?
+  entryGate String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TicketStatus {
+  PENDING
+  BOOKED
+  CANCELLED
+  USED
+}
+
+model FoodOrder {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  matchId        String?
+  status         OrderStatus @default(CONFIRMED)
+  totalAmount    Float
+  deliveryMethod DeliveryMethod
+  stand          String?
+  block          String?
+  seat           String?
+  pickupCounter  String?
+  items          OrderItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  order       FoodOrder @relation(fields: [orderId], references: [id])
+  itemName    String
+  quantity    Int
+  price       Float
+}
+
+enum OrderStatus {
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+enum DeliveryMethod {
+  SEAT_DELIVERY
+  COUNTER_PICKUP
+}
+
+model News {
+  id        String   @id @default(cuid())
+  title     String
+  summary   String?
+  content   String   @db.Text
+  image     String?
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Video {
+  id        String   @id @default(cuid())
+  title     String
+  category  String
+  url       String
+  thumbnail String?
+  duration  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

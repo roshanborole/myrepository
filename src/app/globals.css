@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #06080b;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2530;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2ecc71;
+}
+
+/* Base custom classes used by Stitch components that might not map exactly to Tailwind */
+.glass-panel {
+  @apply bg-surface/80 backdrop-blur-md border border-outline/30 rounded-2xl;
+}
