@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { logout } from '@/app/actions/auth';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { trackClientActivity } from '@/lib/activityLogger';
+import PhotoUploadModal from '@/components/PhotoUploadModal';
 
 interface Ticket {
   id: string;
@@ -47,7 +48,7 @@ interface NotificationItem {
   read: boolean;
 }
 
-export default function ProfilePage() {
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') as 'all' | 'tickets' | 'bookings' | 'notifications' | 'settings' | null;
@@ -63,6 +64,7 @@ export default function ProfilePage() {
   const [profilePhoto, setProfilePhoto] = useState<string>('');
 
   // Modals state
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -169,6 +171,12 @@ export default function ProfilePage() {
         if (data.profile?.name) setProfileName(data.profile.name);
         if (data.profile?.email) setProfileEmail(data.profile.email);
         if (data.profile?.mobile) setProfileMobile(data.profile.mobile);
+        const cachedPhoto = typeof window !== 'undefined' ? localStorage.getItem('roshspark_user_photo') : null;
+        if (cachedPhoto) {
+          setProfilePhoto(cachedPhoto);
+        } else if (data.profile?.photo) {
+          setProfilePhoto(data.profile.photo);
+        }
         if (data.tickets && data.tickets.length > 0) setTicketsData(data.tickets);
         if (data.bookings && data.bookings.length > 0) setBookingsData(data.bookings);
         if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
@@ -321,14 +329,11 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <button
-                  onClick={() => {
-                    const url = prompt('Enter image URL for profile photo:', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80');
-                    if (url) setProfilePhoto(url);
-                  }}
-                  title="Change Photo"
-                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#1e2024] border border-white/20 text-emerald-400 hover:bg-emerald-500 hover:text-black flex items-center justify-center text-xs transition-colors shadow-lg"
+                  onClick={() => setIsPhotoModalOpen(true)}
+                  title="Upload Photo to AWS S3"
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#1e2024] border border-emerald-400/50 text-emerald-400 hover:bg-emerald-500 hover:text-black flex items-center justify-center text-xs transition-colors shadow-lg group-hover:scale-110"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -383,6 +388,16 @@ export default function ProfilePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
                 <span>Change Password</span>
+              </button>
+
+              <button
+                onClick={() => setIsPhotoModalOpen(true)}
+                className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-[#16181c] hover:bg-emerald-950/40 text-emerald-400 hover:text-emerald-300 font-mono text-xs font-semibold tracking-wider transition-all border border-emerald-500/30 text-center flex items-center justify-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Upload S3 Photo</span>
               </button>
             </div>
           </div>
@@ -678,6 +693,30 @@ export default function ProfilePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
             </div>
+
+            {/* Setting: Photo Upload & AWS S3 Vault */}
+            <Link
+              href="/upload"
+              className="bg-[#16181c] hover:bg-[#1e2024] p-4 rounded-2xl border border-white/5 flex items-center justify-between cursor-pointer transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-950/60 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-base">
+                  ☁️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-white">AWS S3 Photo Uploader &amp; Vault</h4>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-[9px] font-mono font-bold">
+                      CLOUD
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono">Upload, preview, and manage images in AWS S3</p>
+                </div>
+              </div>
+              <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
 
             {/* Setting 3: Notification Preferences */}
             <div className="bg-[#16181c] p-4 rounded-2xl border border-white/5 space-y-3 font-mono text-xs">
@@ -1111,6 +1150,32 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* MODAL 6: AWS S3 PHOTO UPLOAD MODAL */}
+      {/* ========================================================================= */}
+      <PhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentPhotoUrl={profilePhoto}
+        title="Upload Fan Avatar to AWS S3"
+        onUploadSuccess={(url) => {
+          setProfilePhoto(url);
+          try {
+            localStorage.setItem('roshspark_user_photo', url);
+          } catch {}
+          showToast('Profile photo updated from AWS S3!');
+          trackClientActivity('Profile updated', 'Updated avatar image via AWS S3');
+        }}
+      />
+
     </main>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0c0e12] flex items-center justify-center font-mono text-emerald-400">Loading Fan Dashboard...</div>}>
+      <ProfileContent />
+    </Suspense>
   );
 }

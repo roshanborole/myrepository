@@ -24,6 +24,7 @@ export default function Header() {
     { href: '/news', label: 'News' },
     { href: '/videos', label: 'Videos' },
     { href: '/stadium', label: 'Stadium' },
+    { href: '/upload', label: 'Upload' },
   ];
 
   return (
@@ -43,7 +44,7 @@ export default function Header() {
           </div>
         </div>
         
-        {/* Desktop Navigation (All 8 Items in order) */}
+        {/* Desktop Navigation (All Items in order) */}
         <nav aria-label="Desktop Navigation" className="hidden lg:flex items-center space-x-6 xl:space-x-8 text-xs font-mono tracking-wider">
           {navLinks.map((link) => {
             const isActive = link.href === '/' 
@@ -67,7 +68,7 @@ export default function Header() {
           })}
         </nav>
         
-        {/* Right Stadium Status & Floodlight Indicator */}
+        {/* Right Stadium Status & Quick Action Telemetry Indicator */}
         <div className="flex items-center space-x-3 sm:space-x-4" data-purpose="telemetry-beacon">
           {/* Floodlight Status Badge */}
           <div 
@@ -85,7 +86,23 @@ export default function Header() {
             <span className="tracking-wide xs:hidden">{isOn ? "LIGHTS ON" : "OFF"}</span>
           </div>
 
-          {/* Small clean profile icon on right side of LIGHT ON button */}
+          {/* S3 Photo Uploader Quick Action */}
+          <Link
+            href="/upload"
+            aria-label="Upload Photo to AWS S3"
+            title="AWS S3 Photo Uploader & Vault"
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all duration-200 flex-shrink-0 group ${
+              pathname.startsWith('/upload')
+                ? 'border-emerald-500/60 bg-emerald-950/70 text-emerald-400 ring-1 ring-emerald-500/40'
+                : 'border-white/10 bg-[#16181c] hover:border-emerald-500/50 hover:bg-emerald-950/40 text-slate-300 hover:text-emerald-400'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+          </Link>
+
+          {/* Small clean profile icon on right side */}
           <Link
             href="/profile"
             aria-label="Profile Dashboard"
