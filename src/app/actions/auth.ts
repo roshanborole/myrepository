@@ -1,6 +1,6 @@
 'use server';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 import { logUserActivity } from '@/lib/activityLogger';
@@ -40,12 +40,19 @@ export async function login(formData: FormData) {
       }
     }
 
+    // Inspect protocol forwarded by AWS Load Balancer (or direct HTTPS)
+    const headerList = await headers();
+    const forwardedProto = headerList.get('x-forwarded-proto');
+    const isHttps = forwardedProto === 'https';
+    const isSecure = isHttps || process.env.FORCE_COOKIE_SECURE === 'true';
+
     // Set cookie
     const cookieStore = await cookies();
     cookieStore.set('session_userId', user.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       maxAge: 60 * 60 * 24 * 7, // 1 week
+      sameSite: 'lax',
       path: '/',
     });
 
