@@ -30,6 +30,14 @@ export default function PhotoUploadModal({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [uploadedMeta, setUploadedMeta] = useState<{
+    name: string;
+    key: string;
+    size: number;
+    originalSize?: number;
+    savingsPercent?: number;
+    dimensions?: { width: number; height: number };
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorHint, setErrorHint] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -94,6 +102,7 @@ export default function PhotoUploadModal({
     setError(null);
     setErrorHint(null);
     setUploadedUrl(null);
+    setUploadedMeta(null);
 
     // Validate image format
     if (!file.type.startsWith('image/')) {
@@ -101,9 +110,9 @@ export default function PhotoUploadModal({
       return;
     }
 
-    // Validate size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 10MB limit.`);
+    // Validate size (15MB)
+    if (file.size > 15 * 1024 * 1024) {
+      setError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 15MB limit.`);
       return;
     }
 
@@ -122,7 +131,7 @@ export default function PhotoUploadModal({
 
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('folder', 'profiles');
+    formData.append('folder', 'new/profiles'); // Prefix starts with new/
 
     try {
       const progressTimer = setInterval(() => {
@@ -141,6 +150,14 @@ export default function PhotoUploadModal({
 
       if (data.success && data.file?.url) {
         setUploadedUrl(data.file.url);
+        setUploadedMeta({
+          name: data.file.name,
+          key: data.file.key,
+          size: data.file.size,
+          originalSize: data.file.originalSize,
+          savingsPercent: data.file.savingsPercent,
+          dimensions: data.file.dimensions,
+        });
         onUploadSuccess(data.file.url);
       } else {
         setError(data.error || 'Failed to upload photo to AWS S3');
@@ -334,12 +351,44 @@ export default function PhotoUploadModal({
             {/* Upload Success State */}
             {uploadedUrl && (
               <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-3">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs font-mono">
-                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Uploaded to AWS S3 Successfully!</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs font-mono">
+                    <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Compressed &amp; Uploaded to AWS S3!</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[10px] font-mono font-bold uppercase tracking-wider">
+                    1:1 SQUARE
+                  </span>
                 </div>
+
+                {/* Compression & Prefix Telemetry */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-mono">
+                  <div className="p-2 rounded-xl bg-[#0c0e12] border border-white/5 space-y-0.5">
+                    <span className="text-slate-500 text-[10px] uppercase block">S3 Prefix</span>
+                    <span className="text-emerald-400 font-bold">new/</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-[#0c0e12] border border-white/5 space-y-0.5">
+                    <span className="text-slate-500 text-[10px] uppercase block">Aspect Ratio</span>
+                    <span className="text-slate-200 font-bold">
+                      {uploadedMeta?.dimensions ? `${uploadedMeta.dimensions.width}×${uploadedMeta.dimensions.height} (1:1)` : '1:1 Square'}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-[#0c0e12] border border-white/5 space-y-0.5 col-span-2 sm:col-span-1">
+                    <span className="text-slate-500 text-[10px] uppercase block">Compression</span>
+                    <span className="text-emerald-300 font-bold">
+                      {uploadedMeta?.savingsPercent ? `-${uploadedMeta.savingsPercent}% Size` : 'Optimized'}
+                    </span>
+                  </div>
+                </div>
+
+                {uploadedMeta?.name && (
+                  <div className="px-3 py-1.5 rounded-xl bg-[#0c0e12] border border-white/5 text-[11px] font-mono flex items-center justify-between">
+                    <span className="text-slate-400">File Name:</span>
+                    <span className="text-emerald-400 font-semibold truncate ml-2">{uploadedMeta.name}</span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 bg-[#0c0e12] p-2 rounded-xl border border-white/10 font-mono text-xs">
                   <input

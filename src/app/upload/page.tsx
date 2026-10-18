@@ -8,9 +8,13 @@ interface UploadedFileRecord {
   name: string;
   url: string;
   size: number;
+  originalSize?: number;
   uploadedAt: string;
   key: string;
   bucket: string;
+  aspectRatio?: string;
+  savingsPercent?: number;
+  dimensions?: { width: number; height: number };
 }
 
 export default function PhotoUploadPage() {
@@ -106,7 +110,7 @@ export default function PhotoUploadPage() {
 
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('folder', 'gallery');
+    formData.append('folder', 'new/gallery'); // Prefix starts with new/
 
     try {
       const timer = setInterval(() => {
@@ -126,11 +130,15 @@ export default function PhotoUploadPage() {
       if (data.success && data.file) {
         const newRecord: UploadedFileRecord = {
           id: `s3-${Date.now()}`,
-          name: data.file.name,
+          name: data.file.name, // Compressed filename
           url: data.file.url,
           size: data.file.size,
+          originalSize: data.file.originalSize,
+          aspectRatio: data.file.aspectRatio || '1:1',
+          savingsPercent: data.file.savingsPercent || 0,
+          dimensions: data.file.dimensions,
           uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          key: data.file.key,
+          key: data.file.key, // Starts with new/
           bucket: data.file.bucket,
         };
 
@@ -256,13 +264,15 @@ export default function PhotoUploadPage() {
 
           <div className="bg-[#16181c] p-4 rounded-2xl border border-white/5 space-y-1">
             <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block font-bold">
-              MAX FILE SIZE &amp; FORMAT
+              S3 PREFIX &amp; COMPRESSION
             </span>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-mono text-white font-bold">10 MB Limit</span>
-              <span className="text-xs font-mono text-slate-400">JPEG, PNG, WebP</span>
+              <span className="text-sm font-mono text-emerald-400 font-bold">new/ • 1:1 Square</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
+                AUTO-COMPRESSED
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 font-mono">High-speed multipart upload</p>
+            <p className="text-[11px] text-slate-500 font-mono">1:1 square crop • *-compressed.* filename</p>
           </div>
         </div>
 
@@ -451,19 +461,31 @@ export default function PhotoUploadPage() {
                   key={item.id}
                   className="bg-[#16181c] rounded-2xl border border-white/5 overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between"
                 >
-                  <div className="aspect-video w-full bg-black/60 relative overflow-hidden">
+                  <div className="aspect-square w-full bg-black/60 relative overflow-hidden">
                     <img
                       src={item.url}
                       alt={item.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono text-emerald-400 border border-white/10">
-                      {formatFileSize(item.size)}
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] font-mono font-bold text-emerald-400 border border-emerald-500/30">
+                      1:1 SQUARE
+                    </div>
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-white border border-white/10 flex items-center gap-1">
+                      <span>{formatFileSize(item.size)}</span>
+                      {item.savingsPercent ? (
+                        <span className="text-emerald-400 font-bold">(-{item.savingsPercent}%)</span>
+                      ) : null}
                     </div>
                   </div>
 
                   <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
                     <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-[9px] font-mono font-bold">
+                          new/
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">Compressed</span>
+                      </div>
                       <h4 className="text-xs font-mono text-white font-bold truncate" title={item.name}>
                         {item.name}
                       </h4>

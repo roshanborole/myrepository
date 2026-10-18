@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToS3, getS3Status } from '@/lib/s3';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB input limit before compression
 const ALLOWED_TYPES = [
   'image/jpeg',
   'image/png',
@@ -20,18 +20,25 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     status,
+    rules: {
+      s3Prefix: 'new/',
+      aspectRatio: '1:1 (square)',
+      compression: 'enabled',
+      filenameFormat: '*_compressed.* or *-compressed.*',
+    },
   });
 }
 
 /**
  * POST /api/upload
- * Accepts multipart/form-data containing an image file to upload to AWS S3
+ * Accepts multipart/form-data containing an image file to crop to 1:1 square,
+ * compress, and upload to AWS S3 under the "new/" prefix.
  */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
-    const folder = (formData.get('folder') as string) || 'photos';
+    const folder = (formData.get('folder') as string) || 'new';
 
     if (!file) {
       return NextResponse.json(
@@ -51,12 +58,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate file size
+    // Validate raw input file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         {
           success: false,
-          error: `File size exceeds 10MB limit. Selected file size: ${(file.size / (1024 * 1024)).toFixed(2)}MB.`,
+          error: `File size exceeds 15MB limit. Selected file size: ${(file.size / (1024 * 1024)).toFixed(2)}MB.`,
         },
         { status: 400 }
       );
@@ -66,18 +73,23 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to AWS S3 bucket
+    // Upload to AWS S3 bucket (performs 1:1 square crop, compression, and new/ prefixing)
     const result = await uploadToS3(buffer, file.name, file.type, folder);
 
     return NextResponse.json({
       success: true,
-      message: 'Image uploaded successfully to AWS S3',
+      message: 'Image compressed, cropped to 1:1 square, and uploaded successfully to AWS S3 under new/ prefix',
       file: {
-        name: file.name,
-        size: file.size,
-        type: file.type,
+        name: result.filename, // Contains 'compressed'
+        originalName: file.name,
+        size: result.size, // Compressed size
+        originalSize: result.originalSize ?? file.size,
+        savingsPercent: result.savingsPercent ?? 0,
+        aspectRatio: '1:1',
+        dimensions: result.dimensions,
+        type: result.mimeType,
         url: result.url,
-        key: result.key,
+        key: result.key, // Starts with new/
         bucket: result.bucket,
       },
     });
