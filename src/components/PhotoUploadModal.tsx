@@ -14,7 +14,7 @@ interface S3Status {
   configured: boolean;
   bucket: string;
   region: string;
-  maskedAccessKey: string | null;
+  isSecure?: boolean;
 }
 
 export default function PhotoUploadModal({
@@ -226,13 +226,13 @@ export default function PhotoUploadModal({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             <span className="text-slate-400">Bucket:</span>
-            <span className="text-emerald-400 font-bold">{s3Status?.bucket || 'roshspark-uploads'}</span>
+            <span className="text-emerald-400 font-bold">{s3Status?.bucket || 'mystadi'}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-500">IAM Key:</span>
-            <span className="text-slate-300 font-semibold">{s3Status?.maskedAccessKey || 'AKIA...WNWY'}</span>
-            <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-[10px]">
-              {s3Status?.region || 'us-east-1'}
+            <span className="text-slate-500">Region:</span>
+            <span className="text-slate-300 font-semibold">{s3Status?.region || 'ap-south-1'}</span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+              ENCRYPTED
             </span>
           </div>
         </div>

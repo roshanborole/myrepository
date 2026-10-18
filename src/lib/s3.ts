@@ -69,9 +69,7 @@ export function getS3Status() {
     configured: isConfigured,
     bucket: bucketName,
     region,
-    hasAccessKey: Boolean(accessKeyId),
-    hasSecretKey: Boolean(secretAccessKey),
-    maskedAccessKey: accessKeyId ? `${accessKeyId.slice(0, 4)}...${accessKeyId.slice(-4)}` : null,
+    isSecure: true,
   };
 }
 

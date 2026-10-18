@@ -24,7 +24,6 @@ export default function Header() {
     { href: '/news', label: 'News' },
     { href: '/videos', label: 'Videos' },
     { href: '/stadium', label: 'Stadium' },
-    { href: '/upload', label: 'Upload' },
   ];
 
   return (
